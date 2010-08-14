@@ -1,4 +1,0 @@
-
-- write lots of tests
-- test various unicode encodings to see how they translate
-- consider making this mutable
