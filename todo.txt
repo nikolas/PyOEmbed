@@ -1,4 +1,4 @@
-
+- add default consumers
 - write a lot of tests
 - justify adding the optional 'www'
 - make sure I'm actually following the spec
