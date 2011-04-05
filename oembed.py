@@ -5,17 +5,19 @@ import urllib2
 import json
 
 
-class Error(ValueError):
-    pass
+class Error(ValueError): pass
+class FormatError(Error): pass
+class NoEndpointError(Error): pass
+class HTTPError(Error): pass
+class UnauthorizedError(HTTPError): pass
+class NotFoundError(HTTPError): pass
+class NotImplementedError(HTTPError): pass
 
-class NotFoundError(Error):
-    pass
-
-class NotImplementedError(Error):
-    pass
-
-class UnauthorizedError(Error):
-    pass
+_http_errors = {
+    401: UnauthorizedError,
+    404: NotFoundError,
+    501: NotImplementedError,
+}
 
 
 class Endpoint(object):
@@ -32,7 +34,7 @@ class Endpoint(object):
     
     def lookup(self, url=None, **kwargs):
         if kwargs.setdefault('format', 'json') not in ('json', 'xml'):
-            raise ValueError('unknown format %r' % kwargs['format'])
+            raise FormatError('unknown format %r' % kwargs['format'])
         body = self.lookup_raw(url, **kwargs)
         if body is None:
             return
@@ -43,7 +45,7 @@ class Endpoint(object):
     def lookup_raw(self, url=None, **kwargs):       
         url = url or self.url
         if url is None:
-            raise ValueError('must specify url')
+            raise Error('must specify url')
         kwargs['url'] = url
         request_url = (self.endpoint % kwargs) + '?' + urlencode(kwargs)
         try:
@@ -55,14 +57,7 @@ class Endpoint(object):
         code = request.getcode()
         if code == 200:
             return request.read()
-        if code == 404:
-            raise NotFoundError(request_url)
-        if code == 501:
-            raise NotImplementedError(request_url)
-        if code == 401:
-            raise Unauthorized(request_url)
-        # print repr(request.read())
-        raise ValueError('unknown http status %r returned from %r' % (code, request_url))
+        raise _http_errors.get(code, HTTPError)(code, request_url)
 
 
 class Consumer(object):
@@ -86,7 +81,7 @@ class Consumer(object):
     def lookup(self, url, **kwargs):
         endpoint = self.find_endpoint(url)
         if not endpoint:
-            raise ValueError('no endpoint for %r' % url)
+            raise NoEndpointError('no endpoint for %r' % url)
         return endpoint.lookup(url, **kwargs)
 
 
@@ -103,7 +98,5 @@ if __name__ == '__main__':
     #pprint(consumer.lookup('http://vimeo.com/7636406'))
     #pprint(consumer.lookup('http://www.flickr.com/photos/xdjio/226228060/'))
     
-    ep = consumer.find_endpoint('http://www.flickr.com/photos/xdjio/226228060')
-    pprint(ep.lookup())
-    ep = consumer.find_endpoint('http://vimeo.com/7636406')
-    pprint(ep.lookup())
+    data = consumer.lookup('http://www.flickr.com/photos/mikeboers/5513981190/')
+    pprint(data)
