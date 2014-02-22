@@ -40,7 +40,7 @@ class Endpoint(object):
             return
         if kwargs['format'] == 'json':
             if sys.version_info > (2, 7):  # checking if it's py3k
-                body = body.encode()
+                body = body.decode()
             return json.loads(body)
         return body
 
