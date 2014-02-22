@@ -1,4 +1,4 @@
-
+import sys
 import re
 from urllib import urlopen, urlencode
 import urllib2
@@ -21,17 +21,17 @@ _http_errors = {
 
 
 class Endpoint(object):
-    
+
     def __init__(self, endpoint, url=None):
         self.endpoint = endpoint
         self.url = url
-    
+
     def __repr__(self):
         return '<Endpoint:%s>' % self.endpoint
-    
+
     def __str__(self):
         return self.endpoint
-    
+
     def lookup(self, url=None, **kwargs):
         if kwargs.setdefault('format', 'json') not in ('json', 'xml'):
             raise FormatError('unknown format %r' % kwargs['format'])
@@ -39,10 +39,12 @@ class Endpoint(object):
         if body is None:
             return
         if kwargs['format'] == 'json':
+            if sys.version_info > (2, 7):  # checking if it's py3k
+                body = body.encode()
             return json.loads(body)
         return body
 
-    def lookup_raw(self, url=None, **kwargs):       
+    def lookup_raw(self, url=None, **kwargs):
         url = url or self.url
         if url is None:
             raise Error('must specify url')
@@ -61,23 +63,23 @@ class Endpoint(object):
 
 
 class Consumer(object):
-    
+
     def __init__(self, providers=None):
         self.providers = []
         for scheme, endpoint in (providers or []):
             self.add_provider(scheme, endpoint)
-    
+
     def add_provider(self, scheme, endpoint):
         scheme = scheme.replace('.', r'\.').replace('*', '.*')
         scheme = scheme.replace('://', r'://(www\.)?')
         scheme = re.compile(r'^%s$' % scheme)
         self.providers.append((scheme, endpoint))
-    
+
     def find_endpoint(self, url):
         for scheme, endpoint in self.providers:
             if scheme.match(url):
                 return Endpoint(endpoint, url)
-    
+
     def lookup(self, url, **kwargs):
         endpoint = self.find_endpoint(url)
         if not endpoint:
@@ -87,9 +89,9 @@ class Consumer(object):
 
 
 if __name__ == '__main__':
-    
+
     from pprint import pprint
-    
+
     consumer = Consumer([
         ('http://flickr.com/*', 'http://www.flickr.com/services/oembed/'),
         ('http://vimeo.com/*', 'http://www.vimeo.com/api/oembed.%(format)s'),
@@ -97,6 +99,6 @@ if __name__ == '__main__':
     ])
     #pprint(consumer.lookup('http://vimeo.com/7636406'))
     #pprint(consumer.lookup('http://www.flickr.com/photos/xdjio/226228060/'))
-    
+
     data = consumer.lookup('http://www.flickr.com/photos/mikeboers/5513981190/')
     pprint(data)
