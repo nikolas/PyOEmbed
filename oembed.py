@@ -1,7 +1,14 @@
 import sys
 import re
-from urllib import urlopen, urlencode
-import urllib2
+
+try:
+    from urllib.parse import urlencode
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
+except ImportError:
+    from urllib2 import urlopen, Request, HTTPError
+    from urllib import urlencode
+
 import json
 
 
@@ -51,10 +58,10 @@ class Endpoint(object):
         kwargs['url'] = url
         request_url = (self.endpoint % kwargs) + '?' + urlencode(kwargs)
         try:
-            request = urllib2.urlopen(urllib2.Request(request_url, headers={
+            request = urlopen(Request(request_url, headers={
                 'User-Agent': 'Python/oEmbed'
             }))
-        except urllib2.HTTPError as request:
+        except HTTPError as request:
             pass
         code = request.getcode()
         if code == 200:
